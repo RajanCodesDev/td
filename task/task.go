@@ -47,16 +47,16 @@ func Modify(db *sql.DB, id int, text string) error {
 }
 
 func List(db *sql.DB) ([]Task, error) {
-	rows, err := db.Query(
-		"SELECT
-		id,
-		task,
-		completed,
-		created_at,
-		completed_at
-		FROM tasks	
-		ORDER BY completed ASC, id ASC",
-	)
+	rows, err := db.Query(`
+		SELECT
+			id,
+			task,
+			completed,
+			created_at,
+			completed_at
+		FROM tasks
+		ORDER BY completed ASC, id ASC
+	`)
 	if err != nil {
 		return nil, err
 	}
