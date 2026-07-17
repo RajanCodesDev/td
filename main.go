@@ -27,17 +27,17 @@ func dbPath() (string, error) {
 	return filepath.Join(dir, "tasks.db"), nil
 }
 
-func usage() {
-	fmt.Println(`
-td add "task"
-td add
-td add -e
-td list
-td modify <id> "new task"
-td delete <id>
-td path
-`)
-}
+	func usage() {
+		fmt.Println(`
+	td add "task"
+	td add
+	td add -e
+	td list
+	td modify <id> "new task"
+	td delete <id>
+	td path
+	`)
+	}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -151,6 +151,25 @@ func main() {
 		}
 
 		fmt.Println("Task updated.")
+
+	case "done":
+	if len(os.Args) != 3 {
+		fmt.Println("usage: td done <id>")
+		return
+	}
+
+	id, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		fmt.Println("invalid id")
+		return
+	}
+
+	err = task.Done(database, id)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Task completed.")
 
 	case "path":
 		fmt.Println(path)
