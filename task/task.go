@@ -3,7 +3,16 @@ package task
 import (
 	"database/sql"
 	"time"
+	"sort"
 )
+
+type Stats struct {
+	Total     int
+	Pending   int
+	Completed int
+	Overdue   int
+	Today     int
+}
 
 type Task struct {
 	ID          int
@@ -29,6 +38,73 @@ func Add(db *sql.DB, text string) error {
 	)
 }
 
+func GetStats(db *sql.DB) (Stats, error) {
+	var s Stats
+
+	tasks, err := List(db)
+	if err != nil {
+		return s, err
+	}
+
+	now := time.Now()
+
+	for _, t := range tasks {
+		s.Total++
+
+		if t.Completed {
+			s.Completed++
+			continue
+		}
+
+		s.Pending++
+
+		if t.DueDate == nil {
+			continue
+		}
+
+		if sameDay(*t.DueDate, now) {
+			s.Today++
+		}
+
+		if t.DueDate.Before(now) &&
+			!sameDay(*t.DueDate, now) {
+			s.Overdue++
+		}
+	}
+
+	return s, nil
+}
+
+func sortWeight(t Task) int {
+	now := time.Now()
+
+	if t.Completed {
+		return 6
+	}
+
+	if t.DueDate != nil {
+
+		if t.DueDate.Before(now) &&
+			!sameDay(*t.DueDate, now) {
+			return 1
+		}
+
+		if sameDay(*t.DueDate, now) {
+			return 2
+		}
+
+		if sameDay(
+			*t.DueDate,
+			now.AddDate(0, 0, 1),
+		) {
+			return 3
+		}
+
+		return 4
+	}
+
+	return 5
+}
 
 
 
@@ -106,67 +182,81 @@ func Modify(db *sql.DB, id int, text string) error {
 func Get(
 	db *sql.DB,
 	id int,
-) (*Task, error) {
-	rows, err := db.Query(`
-		SELECT
-			id,
-			task,
-			completed,
-			priority,
-			tags,
-			due_date,
-			recurring,
-			next_due,
-			created_at,
-			completed_at
-		FROM tasks
-		WHERE
-			task LIKE ?
-			OR tags LIKE ?
-		ORDER BY completed ASC,
-				priority DESC,
-				id ASC
-	`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	) (*Task, error) {
 
-	tasks, err :=
-		scanTasks(rows)
-	if err != nil {
-		return nil, err
-	}
+		rows, err := db.Query(`
+			SELECT
+				id,
+				task,
+				completed,
+				priority,
+				tags,
+				due_date,
+				recurring,
+				next_due,
+				created_at,
+				completed_at
+			FROM tasks
+			WHERE id = ?
+		`, id)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
 
-	if len(tasks) == 0 {
-		return nil, sql.ErrNoRows
-	}
+		tasks, err := scanTasks(rows)
+		sort.Slice(tasks,
+			func(i, j int) bool {
 
-	return &tasks[0], nil
-}
+				a := sortWeight(tasks[i])
+				b := sortWeight(tasks[j])
+
+				if a != b {
+					return a < b
+				}
+
+				if tasks[i].Priority != tasks[j].Priority {
+					return tasks[i].Priority >
+						tasks[j].Priority
+				}
+
+				return tasks[i].ID <
+					tasks[j].ID
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(tasks) == 0 {
+			return nil, sql.ErrNoRows
+		}
+
+		return &tasks[0], nil
+	}
 
 
 func nextOccurrence(
 	t time.Time,
 	r string,
-) time.Time {
-	switch r {
-	case "daily":
-		return t.AddDate(0, 0, 1)
+	) time.Time {
+		switch r {
+		case "daily":
+			return t.AddDate(0, 0, 1)
 
-	case "weekly":
-		return t.AddDate(0, 0, 7)
+		case "weekly":
+			return t.AddDate(0, 0, 7)
 
-	case "monthly":
-		return t.AddDate(0, 1, 0)
+		case "monthly":
+			return t.AddDate(0, 1, 0)
 
-	case "yearly":
-		return t.AddDate(1, 0, 0)
+		case "yearly":
+			return t.AddDate(1, 0, 0)
 
-	default:
-		return t
+		default:
+			return t
+		}
 	}
-}
 
 
 func scanTasks(rows *sql.Rows) ([]Task, error) {
@@ -280,6 +370,7 @@ func Search(
 	db *sql.DB,
 	query string,
 ) ([]Task, error) {
+
 	rows, err := db.Query(`
 		SELECT
 			id,
@@ -288,6 +379,8 @@ func Search(
 			priority,
 			tags,
 			due_date,
+			recurring,
+			next_due,
 			created_at,
 			completed_at
 		FROM tasks
@@ -307,6 +400,14 @@ func Search(
 	defer rows.Close()
 
 	return scanTasks(rows)
+}
+
+func ClearCompleted(db *sql.DB) error {
+	_, err := db.Exec(`
+		DELETE FROM tasks
+		WHERE completed = 1
+	`)
+	return err
 }
 
 func Today(db *sql.DB) ([]Task, error) {
@@ -338,7 +439,19 @@ func Overdue(db *sql.DB) ([]Task, error) {
 	}
 
 	var result []Task
+
 	now := time.Now()
+
+	today := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		0,
+		0,
+		0,
+		0,
+		now.Location(),
+	)
 
 	for _, t := range tasks {
 		if t.Completed {
@@ -349,13 +462,14 @@ func Overdue(db *sql.DB) ([]Task, error) {
 			continue
 		}
 
-		if t.DueDate.Before(now) {
+		if t.DueDate.Before(today) {
 			result = append(result, t)
 		}
 	}
 
 	return result, nil
 }
+
 
 func sameDay(a, b time.Time) bool {
 	y1, m1, d1 := a.Date()
