@@ -1,6 +1,9 @@
 package task
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 type Task struct {
 	ID          int
@@ -45,7 +48,14 @@ func Modify(db *sql.DB, id int, text string) error {
 
 func List(db *sql.DB) ([]Task, error) {
 	rows, err := db.Query(
-		"SELECT id, task FROM tasks ORDER BY id",
+		"SELECT
+		id,
+		task,
+		completed,
+		created_at,
+		completed_at
+		FROM tasks	
+		ORDER BY completed ASC, id ASC",
 	)
 	if err != nil {
 		return nil, err
@@ -57,9 +67,31 @@ func List(db *sql.DB) ([]Task, error) {
 	for rows.Next() {
 		var t Task
 
-		err := rows.Scan(&t.ID, &t.Task)
+		var created string
+		var completedAt sql.NullString
+
+		err := rows.Scan(
+			&t.ID,
+			&t.Task,
+			&t.Completed,
+			&created,
+			&completedAt,
+		)
 		if err != nil {
 			return nil, err
+		}
+
+		t.CreatedAt, _ =
+			time.Parse(time.RFC3339, created)
+
+		if completedAt.Valid {
+			c, _ :=
+				time.Parse(
+					time.RFC3339,
+					completedAt.String,
+				)
+
+			t.CompletedAt = &c
 		}
 
 		tasks = append(tasks, t)
