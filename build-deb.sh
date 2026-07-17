@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-VERSION=1.2.0
+VERSION=1.3.0
 ARCH=amd64
 PKG="td_${VERSION}_${ARCH}"
 

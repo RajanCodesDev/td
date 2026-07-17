@@ -20,6 +20,8 @@ func Init(path string) (*sql.DB, error) {
 		priority INTEGER NOT NULL DEFAULT 2,
 		tags TEXT,
 		due_date TEXT,
+		recurring TEXT,
+		next_due TEXT,
 		created_at TEXT NOT NULL,
 		completed_at TEXT
 	);
