@@ -10,6 +10,7 @@ type Task struct {
 	Task        string
 	Completed   bool
 	Priority    int
+	Tags        string
 	CreatedAt   time.Time
 	CompletedAt *time.Time
 }
