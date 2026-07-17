@@ -53,7 +53,7 @@ func startOfDay(t time.Time) time.Time {
 }
 
 func usage() {
-	fmt.Println(`
+	fmt.Print(`
 td add "task"
 td add "task" --priority high
 td add "task" --tags work,infra
@@ -564,6 +564,10 @@ func main() {
 
 		err = task.Delete(database, id)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				fmt.Println("task not found")
+				return
+			}
 			panic(err)
 		}
 
@@ -581,12 +585,14 @@ func main() {
 			return
 		}
 
-
-
 		text := strings.Join(os.Args[3:], " ")
 
 		err = task.Modify(database, id, text)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				fmt.Println("task not found")
+				return
+			}
 			panic(err)
 		}
 
