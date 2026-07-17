@@ -69,5 +69,32 @@ func List(db *sql.DB) ([]Task, error) {
 }
 
 
-func Done(db *sql.DB, id int) error
-func Undo(db *sql.DB, id int) error
+func Done(db *sql.DB, id int) error {
+	_, err := db.Exec(
+		`
+		UPDATE tasks
+		SET completed = 1,
+		    completed_at = ?
+		WHERE id = ?
+		`,
+		time.Now().Format(time.RFC3339),
+		id,
+	)
+
+	return err
+}
+
+
+func Undo(db *sql.DB, id int) error {
+	_, err := db.Exec(
+		`
+		UPDATE tasks
+		SET completed = 0,
+		    completed_at = NULL
+		WHERE id = ?
+		`,
+		id,
+	)
+
+	return err
+}
