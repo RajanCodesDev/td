@@ -25,6 +25,7 @@ func Add(db *sql.DB, text string) error {
 		2,
 		"",
 		nil,
+		"",
 	)
 }
 
@@ -119,7 +120,12 @@ func Get(
 			created_at,
 			completed_at
 		FROM tasks
-		WHERE id=?
+		WHERE
+			task LIKE ?
+			OR tags LIKE ?
+		ORDER BY completed ASC,
+				priority DESC,
+				id ASC
 	`, id)
 	if err != nil {
 		return nil, err

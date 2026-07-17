@@ -289,6 +289,7 @@ func main() {
 			priority,
 			tags,
 			due,
+			"",
 		)
 		if err != nil {
 			panic(err)
