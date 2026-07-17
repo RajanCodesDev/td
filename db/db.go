@@ -15,7 +15,10 @@ func Init(path string) (*sql.DB, error) {
 	_, err = db.Exec(`
 	CREATE TABLE IF NOT EXISTS tasks (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		task TEXT NOT NULL
+		task TEXT NOT NULL,
+		completed INTEGER NOT NULL DEFAULT 0,
+		created_at TEXT NOT NULL,
+		completed_at TEXT
 	);
 	`)
 	if err != nil {
