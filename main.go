@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
+	"gocli/editor"
 	"gocli/db"
 	"gocli/task"
 )
@@ -30,6 +30,8 @@ func dbPath() (string, error) {
 func usage() {
 	fmt.Println(`
 td add "task"
+td add
+td add -e
 td list
 td modify <id> "new task"
 td delete <id>
@@ -59,8 +61,33 @@ func main() {
 	switch command {
 
 	case "add":
-		if len(os.Args) < 3 {
-			fmt.Println("task text missing")
+
+		if len(os.Args) == 2 {
+			tasks, err := editor.Open()
+			if err != nil {
+				panic(err)
+			}
+
+			for _, t := range tasks {
+				task.Add(database, t)
+			}
+
+			fmt.Printf("Added %d tasks.\n", len(tasks))
+			return
+		}
+
+		if os.Args[2] == "-e" {
+			fmt.Print("Editor: ")
+
+			var name string
+			fmt.Scanln(&name)
+
+			err := editor.SetEditor(name)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("Editor updated.")
 			return
 		}
 
