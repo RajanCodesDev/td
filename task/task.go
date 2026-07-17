@@ -11,12 +11,19 @@ type Task struct {
 	Completed   bool
 	Priority    int
 	Tags        string
+	DueDate     *time.Time
 	CreatedAt   time.Time
 	CompletedAt *time.Time
 }
 
 func Add(db *sql.DB, text string) error {
-	return AddTask(db, text, 2, "")
+	return AddTask(
+		db,
+		text,
+		2,
+		"",
+		nil,
+	)
 }
 
 func AddTask(
@@ -24,20 +31,29 @@ func AddTask(
 	text string,
 	priority int,
 	tags string,
+	due *time.Time,
 ) error {
+	var dueString any
+
+	if due != nil {
+		dueString = due.Format(time.RFC3339)
+	}
+
 	_, err := db.Exec(
 		`
 		INSERT INTO tasks (
 			task,
 			priority,
 			tags,
+			due_date,
 			created_at
 		)
-		VALUES (?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?)
 		`,
 		text,
 		priority,
 		tags,
+		dueString,
 		time.Now().Format(time.RFC3339),
 	)
 
@@ -63,26 +79,7 @@ func Modify(db *sql.DB, id int, text string) error {
 	return err
 }
 
-func List(db *sql.DB) ([]Task, error) {
-	rows, err := db.Query(`
-		SELECT
-			id,
-			task,
-			completed,
-			priority,
-			tags,
-			created_at,
-			completed_at
-		FROM tasks
-		ORDER BY completed ASC,
-		         priority DESC,
-		         id ASC
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+func scanTasks(rows *sql.Rows) ([]Task, error) {
 	var tasks []Task
 
 	for rows.Next() {
@@ -91,6 +88,7 @@ func List(db *sql.DB) ([]Task, error) {
 		var created string
 		var completedAt sql.NullString
 		var tags sql.NullString
+		var due sql.NullString
 
 		err := rows.Scan(
 			&t.ID,
@@ -98,6 +96,7 @@ func List(db *sql.DB) ([]Task, error) {
 			&t.Completed,
 			&t.Priority,
 			&tags,
+			&due,
 			&created,
 			&completedAt,
 		)
@@ -109,8 +108,21 @@ func List(db *sql.DB) ([]Task, error) {
 			t.Tags = tags.String
 		}
 
+		if due.Valid {
+			d, _ :=
+				time.Parse(
+					time.RFC3339,
+					due.String,
+				)
+
+			t.DueDate = &d
+		}
+
 		t.CreatedAt, _ =
-			time.Parse(time.RFC3339, created)
+			time.Parse(
+				time.RFC3339,
+				created,
+			)
 
 		if completedAt.Valid {
 			c, _ :=
@@ -128,6 +140,30 @@ func List(db *sql.DB) ([]Task, error) {
 	return tasks, nil
 }
 
+func List(db *sql.DB) ([]Task, error) {
+	rows, err := db.Query(`
+		SELECT
+			id,
+			task,
+			completed,
+			priority,
+			tags,
+			due_date,
+			created_at,
+			completed_at
+		FROM tasks
+		ORDER BY completed ASC,
+		         priority DESC,
+		         id ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanTasks(rows)
+}
+
 func Search(
 	db *sql.DB,
 	query string,
@@ -139,6 +175,7 @@ func Search(
 			completed,
 			priority,
 			tags,
+			due_date,
 			created_at,
 			completed_at
 		FROM tasks
@@ -157,49 +194,64 @@ func Search(
 	}
 	defer rows.Close()
 
-	var tasks []Task
+	return scanTasks(rows)
+}
 
-	for rows.Next() {
-		var t Task
-
-		var created string
-		var completedAt sql.NullString
-		var tags sql.NullString
-
-		err := rows.Scan(
-			&t.ID,
-			&t.Task,
-			&t.Completed,
-			&t.Priority,
-			&tags,
-			&created,
-			&completedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if tags.Valid {
-			t.Tags = tags.String
-		}
-
-		t.CreatedAt, _ =
-			time.Parse(time.RFC3339, created)
-
-		if completedAt.Valid {
-			c, _ :=
-				time.Parse(
-					time.RFC3339,
-					completedAt.String,
-				)
-
-			t.CompletedAt = &c
-		}
-
-		tasks = append(tasks, t)
+func Today(db *sql.DB) ([]Task, error) {
+	tasks, err := List(db)
+	if err != nil {
+		return nil, err
 	}
 
-	return tasks, nil
+	var result []Task
+	now := time.Now()
+
+	for _, t := range tasks {
+		if t.DueDate == nil {
+			continue
+		}
+
+		if sameDay(*t.DueDate, now) {
+			result = append(result, t)
+		}
+	}
+
+	return result, nil
+}
+
+func Overdue(db *sql.DB) ([]Task, error) {
+	tasks, err := List(db)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []Task
+	now := time.Now()
+
+	for _, t := range tasks {
+		if t.Completed {
+			continue
+		}
+
+		if t.DueDate == nil {
+			continue
+		}
+
+		if t.DueDate.Before(now) {
+			result = append(result, t)
+		}
+	}
+
+	return result, nil
+}
+
+func sameDay(a, b time.Time) bool {
+	y1, m1, d1 := a.Date()
+	y2, m2, d2 := b.Date()
+
+	return y1 == y2 &&
+		m1 == m2 &&
+		d1 == d2
 }
 
 func Done(db *sql.DB, id int) error {
