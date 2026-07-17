@@ -1,244 +1,168 @@
 # td
 
-A lightweight terminal task manager written in Go.
-
-`td` stores your tasks locally using SQLite and follows the Linux XDG directory specification.
+A fast, lightweight terminal task manager written in Go and backed by SQLite.
 
 ## Features
 
-- Simple CLI interface
-- SQLite persistence
-- Bulk task creation using your preferred editor
-- XDG-compliant data and config storage
-- Single binary, no server required
-- Native Debian package
+* SQLite persistence
+* Priorities (Low, Medium, High)
+* Tags
+* Due dates
+* Today and Overdue views
+* Recurring tasks
+* Search
+* Statistics
+* Bulk task creation via editor
+* Pretty terminal tables
+* Command aliases
 
 ---
 
 ## Installation
 
-### Debian Package
-
-```bash
-sudo dpkg -i td_1.0.0_amd64.deb
-```
-
----
-
-## Build from Source
-
-Requirements:
-
-- Go 1.24+
-
-Clone and build:
-
 ```bash
 git clone https://github.com/<your-username>/td.git
 cd td
-
-go build -o td .
-```
-
-Install locally:
-
-```bash
-sudo install -m755 td /usr/local/bin/td
-```
-
-Verify:
-
-```bash
-td
+go build -o td
+sudo mv td /usr/local/bin/
 ```
 
 ---
 
 ## Usage
 
-### Add a task
+### Add Tasks
 
 ```bash
-td add "Learn Kubernetes"
+td add "Buy groceries"
+td add "Pay rent" --priority high
+td add "Deploy cluster" --tags work,kubernetes
+td add "Renew domain" --due 2026-08-01
+td add "Daily journal" --due 2026-08-01 --every daily
 ```
 
-### List tasks
+### List Tasks
 
 ```bash
 td list
 ```
 
-Example:
-
-```text
-=============== Tasks ===============
-1. Learn Kubernetes
-2. Build a Go CLI
-3. Read Distributed Systems book
-```
-
-### Modify a task
+### Complete a Task
 
 ```bash
-td modify 2 "Build and package a Go CLI"
+td done 3
 ```
 
-### Delete a task
+### Undo a Task
 
 ```bash
-td delete 1
+td undo 3
+```
+
+### Modify a Task
+
+```bash
+td modify 3 "Updated task"
+```
+
+### Delete a Task
+
+```bash
+td delete 3
+```
+
+### Search
+
+```bash
+td search journal
+```
+
+### Due Dates
+
+```bash
+td today
+td overdue
+```
+
+### Statistics
+
+```bash
+td stats
+```
+
+### Clear Completed Tasks
+
+```bash
+td clear-completed
 ```
 
 ---
 
-# Bulk Add Mode
+## Recurring Tasks
 
-Running:
-
-```bash
-td add
-```
-
-opens your preferred editor.
-
-Example:
-
-```text
-Learn Go
-Learn Kubernetes
-Buy milk
-Renew SSL certificate
-```
-
-Save and exit.
-
-Every non-empty line becomes a task.
-
----
-
-# Configure Preferred Editor
+Supported recurrence schedules:
 
 ```bash
-td add -e
+--every daily
+--every weekly
+--every monthly
+--every yearly
 ```
 
 Example:
 
-```text
-Editor: micro
-Editor updated.
+```bash
+td add "Daily backup" --due 2026-08-01 --every daily
 ```
 
-Supported editors:
-
-- micro
-- vim
-- nvim
-- nano
-- helix
-- emacs
-- anything available on your system
-
-`td` respects the following order:
-
-1. Configured editor (`~/.config/td/config.json`)
-2. `$EDITOR`
-3. `nano`
-4. `vi`
+Completing a recurring task automatically creates the next occurrence.
 
 ---
 
-# Data Storage
+## Aliases
 
-Tasks database:
+```text
+td ls          list tasks
+td c <id>      complete task
+td u <id>      undo task
+td rm <id>     delete task
+td t           today
+td o           overdue
+td s <text>    search
+td stat        statistics
+td cc          clear completed
+td v           version
+```
+
+---
+
+## Task Ordering
+
+Tasks are automatically sorted in the following order:
+
+1. Overdue
+2. Today
+3. Tomorrow
+4. Future due dates
+5. No due date
+6. Completed
+
+Within the same group:
+
+1. Higher priority first
+2. Earlier due date first
+3. Lower ID first
+
+---
+
+## Database Location
 
 ```text
 ~/.local/share/td/tasks.db
 ```
 
-Configuration:
-
-```text
-~/.config/td/config.json
-```
-
-This keeps your data separate from the installed binary and follows Linux conventions.
-
 ---
 
-# Example Workflow
-
-```bash
-td add "Learn Go"
-td add "Learn Kubernetes"
-td list
-
-td add
-# opens editor
-
-td modify 2 "Learn Kubernetes deeply"
-
-td delete 1
-```
-
----
-
-# Backup
-
-Database file:
-
-```bash
-cp ~/.local/share/td/tasks.db ~/tasks-backup.db
-```
-
-Restore:
-
-```bash
-cp ~/tasks-backup.db ~/.local/share/td/tasks.db
-```
-
----
-
-# Remove Package
-
-```bash
-sudo apt remove td
-```
-
-This removes the binary but keeps:
-
-```text
-~/.local/share/td/tasks.db
-~/.config/td/config.json
-```
-
-To completely remove all data:
-
-```bash
-rm -rf ~/.local/share/td
-rm -rf ~/.config/td
-```
-
----
-
-# Project Structure
-
-```text
-.
-├── config
-├── db
-├── editor
-├── task
-├── main.go
-└── README.md
-```
-
----
-
-# License
+## License
 
 MIT
-
----
-
-Built with Go ❤️
