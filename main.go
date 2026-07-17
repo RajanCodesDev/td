@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"gocli/db"
 	"gocli/editor"
@@ -627,6 +628,10 @@ func main() {
 
 		err = task.Done(database, id)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				fmt.Println("task not found")
+				return
+			}
 			panic(err)
 		}
 
@@ -641,6 +646,22 @@ func main() {
 		id, err := strconv.Atoi(os.Args[2])
 		if err != nil {
 			fmt.Println("invalid id")
+			return
+		}
+
+		t, err := task.Get(database, id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				fmt.Println("task not found")
+				return
+			}
+			panic(err)
+		}
+
+		if t.Recurring != "" {
+			fmt.Println(
+				"cannot undo recurring task occurrences",
+			)
 			return
 		}
 

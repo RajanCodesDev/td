@@ -2,8 +2,8 @@ package task
 
 import (
 	"database/sql"
-	"time"
 	"sort"
+	"time"
 )
 
 type Stats struct {
@@ -106,7 +106,34 @@ func sortWeight(t Task) int {
 	return 5
 }
 
+func sortTasks(tasks []Task) {
+	sort.Slice(tasks,
+		func(i, j int) bool {
+			a := sortWeight(tasks[i])
+			b := sortWeight(tasks[j])
 
+			if a != b {
+				return a < b
+			}
+
+			if tasks[i].Priority != tasks[j].Priority {
+				return tasks[i].Priority >
+					tasks[j].Priority
+			}
+
+			if tasks[i].DueDate != nil &&
+				tasks[j].DueDate != nil {
+
+				return tasks[i].DueDate.Before(
+					*tasks[j].DueDate,
+				)
+			}
+
+			return tasks[i].ID <
+				tasks[j].ID
+		},
+	)
+}
 
 func AddTask(
 	db *sql.DB,
@@ -133,7 +160,6 @@ func AddTask(
 				time.RFC3339,
 			)
 	}
-	
 
 	_, err := db.Exec(
 		`
@@ -161,30 +187,58 @@ func AddTask(
 }
 
 func Delete(db *sql.DB, id int) error {
-	_, err := db.Exec(
+	res, err := db.Exec(
 		"DELETE FROM tasks WHERE id=?",
 		id,
 	)
+	if err != nil {
+		return err
+	}
 
-	return err
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
 
-func Modify(db *sql.DB, id int, text string) error {
-	_, err := db.Exec(
+func Modify(
+	db *sql.DB,
+	id int,
+	text string,
+) error {
+	res, err := db.Exec(
 		"UPDATE tasks SET task=? WHERE id=?",
 		text,
 		id,
 	)
+	if err != nil {
+		return err
+	}
 
-	return err
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
 
 func Get(
 	db *sql.DB,
 	id int,
-	) (*Task, error) {
+) (*Task, error) {
 
-		rows, err := db.Query(`
+	rows, err := db.Query(`
 			SELECT
 				id,
 				task,
@@ -199,65 +253,46 @@ func Get(
 			FROM tasks
 			WHERE id = ?
 		`, id)
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-		tasks, err := scanTasks(rows)
-		sort.Slice(tasks,
-			func(i, j int) bool {
-
-				a := sortWeight(tasks[i])
-				b := sortWeight(tasks[j])
-
-				if a != b {
-					return a < b
-				}
-
-				if tasks[i].Priority != tasks[j].Priority {
-					return tasks[i].Priority >
-						tasks[j].Priority
-				}
-
-				return tasks[i].ID <
-					tasks[j].ID
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(tasks) == 0 {
-			return nil, sql.ErrNoRows
-		}
-
-		return &tasks[0], nil
+	tasks, err := scanTasks(rows)
+	if err != nil {
+		return nil, err
 	}
 
+	sortTasks(tasks)
+
+	if len(tasks) == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	return &tasks[0], nil
+}
 
 func nextOccurrence(
 	t time.Time,
 	r string,
-	) time.Time {
-		switch r {
-		case "daily":
-			return t.AddDate(0, 0, 1)
+) time.Time {
+	switch r {
+	case "daily":
+		return t.AddDate(0, 0, 1)
 
-		case "weekly":
-			return t.AddDate(0, 0, 7)
+	case "weekly":
+		return t.AddDate(0, 0, 7)
 
-		case "monthly":
-			return t.AddDate(0, 1, 0)
+	case "monthly":
+		return t.AddDate(0, 1, 0)
 
-		case "yearly":
-			return t.AddDate(1, 0, 0)
+	case "yearly":
+		return t.AddDate(1, 0, 0)
 
-		default:
-			return t
-		}
+	default:
+		return t
 	}
-
+}
 
 func scanTasks(rows *sql.Rows) ([]Task, error) {
 	var tasks []Task
@@ -274,16 +309,16 @@ func scanTasks(rows *sql.Rows) ([]Task, error) {
 		var due sql.NullString
 
 		err := rows.Scan(
-				&t.ID,
-				&t.Task,
-				&t.Completed,
-				&t.Priority,
-				&tags,
-				&due,
-				&recurring,
-				&nextDue,
-				&created,
-				&completedAt,
+			&t.ID,
+			&t.Task,
+			&t.Completed,
+			&t.Priority,
+			&tags,
+			&due,
+			&recurring,
+			&nextDue,
+			&created,
+			&completedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -342,28 +377,32 @@ func scanTasks(rows *sql.Rows) ([]Task, error) {
 
 func List(db *sql.DB) ([]Task, error) {
 	rows, err := db.Query(`
-			SELECT
-				id,
-				task,
-				completed,
-				priority,
-				tags,
-				due_date,
-				recurring,
-				next_due,
-				created_at,
-				completed_at
-			FROM tasks
-		ORDER BY completed ASC,
-		         priority DESC,
-		         id ASC
+		SELECT
+			id,
+			task,
+			completed,
+			priority,
+			tags,
+			due_date,
+			recurring,
+			next_due,
+			created_at,
+			completed_at
+		FROM tasks
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	return scanTasks(rows)
+	tasks, err := scanTasks(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	sortTasks(tasks)
+
+	return tasks, nil
 }
 
 func Search(
@@ -387,9 +426,6 @@ func Search(
 		WHERE
 			task LIKE ?
 			OR tags LIKE ?
-		ORDER BY completed ASC,
-		         priority DESC,
-		         id ASC
 	`,
 		"%"+query+"%",
 		"%"+query+"%",
@@ -399,7 +435,14 @@ func Search(
 	}
 	defer rows.Close()
 
-	return scanTasks(rows)
+	tasks, err := scanTasks(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	sortTasks(tasks)
+
+	return tasks, nil
 }
 
 func ClearCompleted(db *sql.DB) error {
@@ -408,6 +451,19 @@ func ClearCompleted(db *sql.DB) error {
 		WHERE completed = 1
 	`)
 	return err
+}
+
+func nextFutureOccurrence(
+	t time.Time,
+	r string,
+) time.Time {
+	now := time.Now()
+
+	for !t.After(now) {
+		t = nextOccurrence(t, r)
+	}
+
+	return t
 }
 
 func Today(db *sql.DB) ([]Task, error) {
@@ -470,7 +526,6 @@ func Overdue(db *sql.DB) ([]Task, error) {
 	return result, nil
 }
 
-
 func sameDay(a, b time.Time) bool {
 	y1, m1, d1 := a.Date()
 	y2, m2, d2 := b.Date()
@@ -507,7 +562,7 @@ func Done(
 		t.DueDate != nil {
 
 		next :=
-			nextOccurrence(
+			nextFutureOccurrence(
 				*t.DueDate,
 				t.Recurring,
 			)
@@ -529,9 +584,11 @@ func Done(
 	return nil
 }
 
-
-func Undo(db *sql.DB, id int) error {
-	_, err := db.Exec(
+func Undo(
+	db *sql.DB,
+	id int,
+) error {
+	res, err := db.Exec(
 		`
 		UPDATE tasks
 		SET completed = 0,
@@ -540,6 +597,18 @@ func Undo(db *sql.DB, id int) error {
 		`,
 		id,
 	)
+	if err != nil {
+		return err
+	}
 
-	return err
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
