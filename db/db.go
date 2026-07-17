@@ -19,6 +19,7 @@ func Init(path string) (*sql.DB, error) {
 		completed INTEGER NOT NULL DEFAULT 0,
 		priority INTEGER NOT NULL DEFAULT 2,
 		tags TEXT,
+		due_date TEXT,
 		created_at TEXT NOT NULL,
 		completed_at TEXT
 	);
