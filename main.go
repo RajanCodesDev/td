@@ -11,6 +11,11 @@ import (
 	"gocli/task"
 )
 
+const (
+	Reset = "\033[0m"
+	Green = "\033[32m"
+)
+
 func dbPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -33,6 +38,8 @@ func dbPath() (string, error) {
 	td add
 	td add -e
 	td list
+	td done <id>
+	td undo <id>
 	td modify <id> "new task"
 	td delete <id>
 	td path
@@ -106,10 +113,22 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Println("=============== Tasks ===============")
+		fmt.Printf("%-3s %-3s %s\n", "ID", "S", "Task")
+		fmt.Println("--------------------------------")
 
 		for _, t := range tasks {
-			fmt.Printf("%d. %s\n", t.ID, t.Task)
+			status := "○"
+
+			if t.Completed {
+				status = Green +  "✓" + Reset
+			}
+
+			fmt.Printf(
+				"%-3d %-3s %s\n",
+				t.ID,
+				status,
+				t.Task,
+			)
 		}
 
 	case "delete":
@@ -153,23 +172,42 @@ func main() {
 		fmt.Println("Task updated.")
 
 	case "done":
-	if len(os.Args) != 3 {
-		fmt.Println("usage: td done <id>")
-		return
-	}
+		if len(os.Args) != 3 {
+			fmt.Println("usage: td done <id>")
+			return
+		}
 
-	id, err := strconv.Atoi(os.Args[2])
-	if err != nil {
-		fmt.Println("invalid id")
-		return
-	}
+		id, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("invalid id")
+			return
+		}
 
-	err = task.Done(database, id)
-	if err != nil {
-		panic(err)
-	}
+		err = task.Done(database, id)
+		if err != nil {
+			panic(err)
+		}
 
-	fmt.Println("Task completed.")
+		fmt.Println("Task completed.")
+
+	case "undo":
+		if len(os.Args) != 3 {
+			fmt.Println("usage: td undo <id>")
+			return
+		}
+
+		id, err := strconv.Atoi(os.Args[2])
+		if err != nil {
+			fmt.Println("invalid id")
+			return
+		}
+
+		err = task.Undo(database, id)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("Task marked pending.")
 
 	case "path":
 		fmt.Println(path)
