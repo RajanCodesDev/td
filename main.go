@@ -39,8 +39,9 @@ func usage() {
 	fmt.Println(`
 td add "task"
 td add "task" --priority high
-td add "task" --priority medium
-td add "task" --priority low
+td add "task" --tags work,infra
+td add "task" --priority high --tags work,infra
+td search <text>
 td add
 td add -e
 td list
@@ -50,6 +51,49 @@ td modify <id> "new task"
 td delete <id>
 td path
 `)
+}
+
+
+
+func printTasks(tasks []task.Task) {
+	fmt.Printf(
+		"%-3s %-3s %-3s %-20s %s\n",
+		"ID",
+		"S",
+		"P",
+		"Tags",
+		"Task",
+	)
+
+	fmt.Println("----------------------------------------------------------------")
+
+	for _, t := range tasks {
+		status := "○"
+
+		if t.Completed {
+			status = Green + "✓" + Reset
+		}
+
+		priority := "M"
+
+		switch t.Priority {
+		case 1:
+			priority = Cyan + "L" + Reset
+		case 2:
+			priority = Yellow + "M" + Reset
+		case 3:
+			priority = Red + "H" + Reset
+		}
+
+		fmt.Printf(
+			"%-3d %-3s %-3s %-20s %s\n",
+			t.ID,
+			status,
+			priority,
+			t.Tags,
+			t.Task,
+		)
+	}
 }
 
 func main() {
@@ -108,6 +152,7 @@ func main() {
 		}
 
 		priority := 2
+		tags := ""
 
 		for i := 2; i < len(os.Args); i++ {
 			if os.Args[i] == "--priority" {
@@ -119,13 +164,10 @@ func main() {
 				switch strings.ToLower(os.Args[i+1]) {
 				case "low":
 					priority = 1
-
 				case "medium":
 					priority = 2
-
 				case "high":
 					priority = 3
-
 				default:
 					fmt.Println(
 						"priority must be low, medium or high",
@@ -143,12 +185,32 @@ func main() {
 			}
 		}
 
+		for i := 2; i < len(os.Args); i++ {
+			if os.Args[i] == "--tags" {
+				if i+1 >= len(os.Args) {
+					fmt.Println("missing tags")
+					return
+				}
+
+				tags = os.Args[i+1]
+
+				os.Args =
+					append(
+						os.Args[:i],
+						os.Args[i+2:]...,
+					)
+
+				break
+			}
+		}
+
 		text := strings.Join(os.Args[2:], " ")
 
-		err := task.AddWithPriority(
+		err := task.AddTask(
 			database,
 			text,
 			priority,
+			tags,
 		)
 		if err != nil {
 			panic(err)
@@ -162,44 +224,7 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Printf(
-			"%-3s %-3s %-3s %s\n",
-			"ID",
-			"S",
-			"P",
-			"Task",
-		)
-
-		fmt.Println("--------------------------------")
-
-		for _, t := range tasks {
-			status := "○"
-
-			if t.Completed {
-				status = Green + "✓" + Reset
-			}
-
-			priority := "M"
-
-			switch t.Priority {
-			case 1:
-				priority = Cyan + "L" + Reset
-
-			case 2:
-				priority = Yellow + "M" + Reset
-
-			case 3:
-				priority = Red + "H" + Reset
-			}
-
-			fmt.Printf(
-				"%-3d %-3s %-3s %s\n",
-				t.ID,
-				status,
-				priority,
-				t.Task,
-			)
-		}
+		printTasks(tasks)
 
 	case "delete":
 		if len(os.Args) != 3 {
@@ -240,6 +265,28 @@ func main() {
 		}
 
 		fmt.Println("Task updated.")
+
+	case "search":
+		if len(os.Args) < 3 {
+			fmt.Println("usage: td search <text>")
+			return
+		}
+
+		query := strings.Join(
+			os.Args[2:],
+			" ",
+		)
+
+		tasks, err :=
+			task.Search(
+				database,
+				query,
+			)
+		if err != nil {
+			panic(err)
+		}
+
+		printTasks(tasks)
 
 	case "done":
 		if len(os.Args) != 3 {
