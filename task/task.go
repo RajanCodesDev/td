@@ -9,18 +9,31 @@ type Task struct {
 	ID          int
 	Task        string
 	Completed   bool
+	Priority    int
 	CreatedAt   time.Time
 	CompletedAt *time.Time
 }
 
 func Add(db *sql.DB, text string) error {
+	return AddWithPriority(db, text, 2)
+}
+
+func AddWithPriority(
+	db *sql.DB,
+	text string,
+	priority int,
+) error {
 	_, err := db.Exec(
-		`INSERT INTO tasks (
+		`
+		INSERT INTO tasks (
 			task,
+			priority,
 			created_at
 		)
-		VALUES (?, ?)`,
+		VALUES (?, ?, ?)
+		`,
 		text,
+		priority,
 		time.Now().Format(time.RFC3339),
 	)
 
@@ -52,10 +65,11 @@ func List(db *sql.DB) ([]Task, error) {
 			id,
 			task,
 			completed,
+			priority,
 			created_at,
 			completed_at
 		FROM tasks
-		ORDER BY completed ASC, id ASC
+		ORDER BY completed ASC, priority DESC, id ASC
 	`)
 	if err != nil {
 		return nil, err
@@ -74,6 +88,7 @@ func List(db *sql.DB) ([]Task, error) {
 			&t.ID,
 			&t.Task,
 			&t.Completed,
+			&t.Priority,
 			&created,
 			&completedAt,
 		)
@@ -100,7 +115,6 @@ func List(db *sql.DB) ([]Task, error) {
 	return tasks, nil
 }
 
-
 func Done(db *sql.DB, id int) error {
 	_, err := db.Exec(
 		`
@@ -115,7 +129,6 @@ func Done(db *sql.DB, id int) error {
 
 	return err
 }
-
 
 func Undo(db *sql.DB, id int) error {
 	_, err := db.Exec(
