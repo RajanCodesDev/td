@@ -12,8 +12,13 @@ type Task struct {
 
 func Add(db *sql.DB, text string) error {
 	_, err := db.Exec(
-		"INSERT INTO tasks(task) VALUES (?)",
+		`INSERT INTO tasks (
+			task,
+			created_at
+		)
+		VALUES (?, ?)`,
 		text,
+		time.Now().Format(time.RFC3339),
 	)
 
 	return err
