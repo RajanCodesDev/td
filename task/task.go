@@ -3,8 +3,11 @@ package task
 import "database/sql"
 
 type Task struct {
-	ID   int
-	Task string
+	ID          int
+	Task        string
+	Completed   bool
+	CreatedAt   time.Time
+	CompletedAt *time.Time
 }
 
 func Add(db *sql.DB, text string) error {
@@ -59,3 +62,7 @@ func List(db *sql.DB) ([]Task, error) {
 
 	return tasks, nil
 }
+
+
+func Done(db *sql.DB, id int) error
+func Undo(db *sql.DB, id int) error
