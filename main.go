@@ -83,18 +83,18 @@ func printTasks(tasks []task.Task) {
 		status := "○"
 
 		if t.Completed {
-			status = Green + "✓" + Reset
+			status = "✓" 
 		}
 
 		priority := "M"
 
 		switch t.Priority {
 		case 1:
-			priority = Cyan + "L" + Reset
+			priority = "L"
 		case 2:
-			priority = Yellow + "M" + Reset
+			priority = "M"
 		case 3:
-			priority = Red + "H" + Reset
+			priority = "H"
 		}
 
 		due := "-"
