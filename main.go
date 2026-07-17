@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"gocli/db"
+	"gocli/editor"
+	"gocli/task"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"gocli/editor"
-	"gocli/db"
-	"gocli/task"
+	"time"
 )
 
 const (
@@ -41,6 +42,9 @@ td add "task"
 td add "task" --priority high
 td add "task" --tags work,infra
 td add "task" --priority high --tags work,infra
+td add "task" --due 2026-08-01
+td today
+td overdue
 td search <text>
 td add
 td add -e
@@ -53,19 +57,27 @@ td path
 `)
 }
 
+func sameDay(a, b time.Time) bool {
+	y1, m1, d1 := a.Date()
+	y2, m2, d2 := b.Date()
 
+	return y1 == y2 &&
+		m1 == m2 &&
+		d1 == d2
+}
 
 func printTasks(tasks []task.Task) {
 	fmt.Printf(
-		"%-3s %-3s %-3s %-20s %s\n",
+		"%-3s %-3s %-3s %-12s %-20s %s\n",
 		"ID",
 		"S",
 		"P",
+		"Due",
 		"Tags",
 		"Task",
 	)
 
-	fmt.Println("----------------------------------------------------------------")
+	fmt.Println("--------------------------------------------------------------------------------")
 
 	for _, t := range tasks {
 		status := "○"
@@ -85,11 +97,44 @@ func printTasks(tasks []task.Task) {
 			priority = Red + "H" + Reset
 		}
 
+		due := "-"
+
+		if t.DueDate != nil {
+			due =
+				t.DueDate.Format(
+					"2006-01-02",
+				)
+
+			now := time.Now()
+
+			if !t.Completed {
+				if t.DueDate.Before(now) &&
+					!sameDay(*t.DueDate, now) {
+
+					due =
+						Red +
+						due +
+						Reset
+
+				} else if sameDay(
+					*t.DueDate,
+					now,
+				) {
+
+					due =
+						Yellow +
+						due +
+						Reset
+				}
+			}
+		}
+
 		fmt.Printf(
-			"%-3d %-3s %-3s %-20s %s\n",
+			"%-3d %-3s %-3s %-12s %-20s %s\n",
 			t.ID,
 			status,
 			priority,
+			due,
 			t.Tags,
 			t.Task,
 		)
@@ -153,6 +198,7 @@ func main() {
 
 		priority := 2
 		tags := ""
+		var due *time.Time
 
 		for i := 2; i < len(os.Args); i++ {
 			if os.Args[i] == "--priority" {
@@ -204,6 +250,37 @@ func main() {
 			}
 		}
 
+		for i := 2; i < len(os.Args); i++ {
+			if os.Args[i] == "--due" {
+				if i+1 >= len(os.Args) {
+					fmt.Println("missing date")
+					return
+				}
+
+				d, err :=
+					time.Parse(
+						"2006-01-02",
+						os.Args[i+1],
+					)
+				if err != nil {
+					fmt.Println(
+						"date format: YYYY-MM-DD",
+					)
+					return
+				}
+
+				due = &d
+
+				os.Args =
+					append(
+						os.Args[:i],
+						os.Args[i+2:]...,
+					)
+
+				break
+			}
+		}
+
 		text := strings.Join(os.Args[2:], " ")
 
 		err := task.AddTask(
@@ -211,6 +288,7 @@ func main() {
 			text,
 			priority,
 			tags,
+			due,
 		)
 		if err != nil {
 			panic(err)
@@ -225,7 +303,26 @@ func main() {
 		}
 
 		printTasks(tasks)
+	
 
+	case "today":
+		tasks, err :=
+			task.Today(database)
+		if err != nil {
+			panic(err)
+		}
+
+		printTasks(tasks)
+
+	case "overdue":
+		tasks, err :=
+			task.Overdue(database)
+		if err != nil {
+			panic(err)
+		}
+
+		printTasks(tasks)
+	
 	case "delete":
 		if len(os.Args) != 3 {
 			fmt.Println("usage: td delete <id>")
