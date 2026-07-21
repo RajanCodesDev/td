@@ -6,7 +6,7 @@ A fast, lightweight terminal task manager written in Go and backed by SQLite.
 
 * SQLite persistence
 * Priorities (Low, Medium, High)
-* Tags
+* project
 * Due dates
 * Today and Overdue views
 * Recurring tasks
@@ -36,7 +36,7 @@ sudo mv td /usr/local/bin/
 ```bash
 td add "Buy groceries"
 td add "Pay rent" --priority high
-td add "Deploy cluster" --tags work,kubernetes
+td add "Deploy cluster" --project work,kubernetes
 td add "Renew domain" --due 2026-08-01
 td add "Daily journal" --due 2026-08-01 --every daily
 ```

@@ -56,8 +56,12 @@ func usage() {
 	fmt.Print(`
 td add "task"
 td add "task" --priority high
-td add "task" --tags work,infra
-td add "task" --priority high --tags work,infra
+td add "task" -p work
+td add "task" --project work
+td add "task" --priority high -p work
+td add "task" --priority high --project work
+td -p
+td -p work
 td add "task" --due 2026-08-01
 td today
 td overdue
@@ -101,7 +105,7 @@ func renderTable(title string, tasks []task.Task) {
 			"S",
 			"P",
 			"Completed",
-			"Tags",
+			"Project",
 			"Task",
 		})
 	} else {
@@ -111,7 +115,7 @@ func renderTable(title string, tasks []task.Task) {
 			"P",
 			"Due",
 			"Every",
-			"Tags",
+			"project",
 			"Task",
 		})
 	}
@@ -133,9 +137,9 @@ for _, t := range tasks {
 		priority = "H"
 	}
 
-	tags := "-"
-	if t.Tags != "" {
-		tags = "[" + t.Tags + "]"
+	project := "-"
+	if t.Project != "" {
+		project = t.Project
 	}
 
 	if isCompleted {
@@ -153,7 +157,7 @@ for _, t := range tasks {
 			status,
 			priority,
 			completed,
-			tags,
+			project,
 			t.Task,
 		})
 
@@ -221,7 +225,7 @@ for _, t := range tasks {
 		priority,
 		due,
 		every,
-		tags,
+		project,
 		t.Task,
 	})
 }
@@ -272,6 +276,34 @@ func main() {
 		panic(err)
 	}
 	defer database.Close()
+
+	if os.Args[1] == "-p" || os.Args[1] == "--project" {
+
+		if len(os.Args) == 2 {
+
+			projects, err := task.ListProjects(database)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("Projects\n")
+
+			for _, p := range projects {
+				fmt.Printf("%-20s (%d)\n", p.Name, p.Count)
+			}
+
+			return
+		}
+
+		tasks, err := task.ProjectTasks(database, os.Args[2])
+		if err != nil {
+			panic(err)
+		}
+
+		printTasks(tasks)
+		return
+	}
+
 
 	command := os.Args[1]
 	switch command {
@@ -377,7 +409,7 @@ func main() {
 		}
 
 		priority := 2
-		tags := ""
+		project := ""
 		var due *time.Time
 		recurring := ""
 
@@ -452,13 +484,13 @@ func main() {
 		}
 
 		for i := 2; i < len(os.Args); i++ {
-			if os.Args[i] == "--tags" {
+			if os.Args[i] == "-p" || os.Args[i] == "--project" {
 				if i+1 >= len(os.Args) {
-					fmt.Println("missing tags")
+					fmt.Println("missing project")
 					return
 				}
 
-				tags = os.Args[i+1]
+				project = os.Args[i+1]
 
 				os.Args =
 					append(
@@ -513,7 +545,7 @@ func main() {
 			database,
 			text,
 			priority,
-			tags,
+			project,
 			due,
 			recurring,
 		)

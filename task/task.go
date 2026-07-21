@@ -19,12 +19,111 @@ type Task struct {
 	Task        string
 	Completed   bool
 	Priority    int
-	Tags        string
+	Project     string
 	DueDate     *time.Time
 	CreatedAt   time.Time
 	CompletedAt *time.Time
 	Recurring   string
 	NextDue     *time.Time
+}
+
+type ProjectCount struct {
+	Name  string
+	Count int
+}
+
+
+func ListProjects(db *sql.DB) ([]ProjectCount, error) {
+	rows, err := db.Query(`
+		SELECT
+			COALESCE(NULLIF(TRIM(project),''),'default'),
+			COUNT(*)
+		FROM tasks
+		GROUP BY COALESCE(NULLIF(TRIM(project),''),'default')
+		ORDER BY
+			CASE
+				WHEN COALESCE(NULLIF(TRIM(project),''),'default')='default'
+				THEN 0
+				ELSE 1
+			END,
+			COALESCE(NULLIF(TRIM(project),''),'default')
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var projects []ProjectCount
+
+	for rows.Next() {
+		var p ProjectCount
+
+		if err := rows.Scan(&p.Name, &p.Count); err != nil {
+			return nil, err
+		}
+
+		projects = append(projects, p)
+	}
+
+	return projects, nil
+}
+
+func ProjectTasks(
+	db *sql.DB,
+	project string,
+) ([]Task, error) {
+
+	var rows *sql.Rows
+	var err error
+
+	if project == "default" {
+		rows, err = db.Query(`
+			SELECT
+				id,
+				task,
+				completed,
+				priority,
+				project,
+				due_date,
+				recurring,
+				next_due,
+				created_at,
+				completed_at
+			FROM tasks
+			WHERE project IS NULL
+			   OR project=''
+		`)
+	} else {
+		rows, err = db.Query(`
+			SELECT
+				id,
+				task,
+				completed,
+				priority,
+				project,
+				due_date,
+				recurring,
+				next_due,
+				created_at,
+				completed_at
+			FROM tasks
+			WHERE LOWER(project)=LOWER(?)
+		`, project)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tasks, err := scanTasks(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	sortTasks(tasks)
+
+	return tasks, nil
 }
 
 func Add(db *sql.DB, text string) error {
@@ -154,7 +253,7 @@ func AddTask(
 	db *sql.DB,
 	text string,
 	priority int,
-	tags string,
+	project string,
 	due *time.Time,
 	recurring string,
 ) error {
@@ -181,7 +280,7 @@ func AddTask(
 		INSERT INTO tasks (
 			task,
 			priority,
-			tags,
+			project,
 			due_date,
 			recurring,
 			next_due,
@@ -191,7 +290,7 @@ func AddTask(
 		`,
 		text,
 		priority,
-		tags,
+		project,
 		dueString,
 		recurring,
 		nextDue,
@@ -259,7 +358,7 @@ func Get(
 			task,
 			completed,
 			priority,
-			tags,
+			project,
 			due_date,
 			recurring,
 			next_due,
@@ -318,7 +417,7 @@ func scanTasks(rows *sql.Rows) ([]Task, error) {
 
 		var created string
 		var completedAt sql.NullString
-		var tags sql.NullString
+		var project sql.NullString
 		var due sql.NullString
 
 		err := rows.Scan(
@@ -326,7 +425,7 @@ func scanTasks(rows *sql.Rows) ([]Task, error) {
 			&t.Task,
 			&t.Completed,
 			&t.Priority,
-			&tags,
+			&project,
 			&due,
 			&recurring,
 			&nextDue,
@@ -337,8 +436,8 @@ func scanTasks(rows *sql.Rows) ([]Task, error) {
 			return nil, err
 		}
 
-		if tags.Valid {
-			t.Tags = tags.String
+		if project.Valid {
+			t.Project = project.String
 		}
 
 		if recurring.Valid {
@@ -395,7 +494,7 @@ func List(db *sql.DB) ([]Task, error) {
 			task,
 			completed,
 			priority,
-			tags,
+			project,
 			due_date,
 			recurring,
 			next_due,
@@ -429,7 +528,7 @@ func Search(
 			task,
 			completed,
 			priority,
-			tags,
+			project,
 			due_date,
 			recurring,
 			next_due,
@@ -438,7 +537,7 @@ func Search(
 		FROM tasks
 		WHERE
 			task LIKE ?
-			OR tags LIKE ?
+			OR project LIKE ?
 	`,
 		"%"+query+"%",
 		"%"+query+"%",
@@ -597,7 +696,7 @@ func Done(
 				db,
 				t.Task,
 				t.Priority,
-				t.Tags,
+				t.Project,
 				&next,
 				t.Recurring,
 			)
