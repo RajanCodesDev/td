@@ -1,0 +1,7 @@
+td (1.5.0-1) noble; urgency=medium
+
+  * Initial PPA release.
+  * Add project support.
+  * SQLite-backed task manager written in Go.
+
+ -- Shivendra Rajan <shivendrarajan10@gmail.com>  Tue, 21 Jul 2026 18:00:00 +0530

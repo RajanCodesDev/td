@@ -1,0 +1,19 @@
+Source: td
+Section: utils
+Priority: optional
+Maintainer: Shivendra Rajan <shivendrarajan10@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-golang,
+ golang-any
+Standards-Version: 4.6.2
+Homepage: https://github.com/RajanCodesDev/td
+Rules-Requires-Root: no
+
+Package: td
+Architecture: any
+Depends: ${misc:Depends}
+Description: Fast terminal task manager
+ td is a lightweight terminal task manager written in Go and backed by SQLite.
+ It supports priorities, projects, recurring tasks, due dates, search,
+ statistics, and SQLite persistence.
