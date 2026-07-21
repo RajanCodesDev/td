@@ -4,17 +4,17 @@ A fast, lightweight terminal task manager written in Go and backed by SQLite.
 
 ## Features
 
-* SQLite persistence
-* Priorities (Low, Medium, High)
-* project
-* Due dates
-* Today and Overdue views
-* Recurring tasks
-* Search
-* Statistics
-* Bulk task creation via editor
-* Pretty terminal tables
-* Command aliases
+- SQLite persistence
+- Projects
+- Priorities (Low, Medium, High)
+- Due dates
+- Today & Overdue views
+- Recurring tasks
+- Search
+- Statistics
+- Bulk task creation via your preferred editor
+- Pretty terminal tables
+- Command aliases
 
 ---
 
@@ -35,29 +35,80 @@ sudo mv td /usr/local/bin/
 
 ```bash
 td add "Buy groceries"
+
+td add "Fix production bug" -p work
+
+td add "Review Kubernetes docs" --project learning
+
 td add "Pay rent" --priority high
-td add "Deploy cluster" --project work,kubernetes
+
 td add "Renew domain" --due 2026-08-01
+
 td add "Daily journal" --due 2026-08-01 --every daily
+
+td add "Deploy cluster" -p work --priority high --due 2026-08-01
 ```
+
+---
 
 ### List Tasks
 
 ```bash
 td list
+
+# alias
+td ls
 ```
+
+---
+
+### Projects
+
+List all projects:
+
+```bash
+td -p
+```
+
+Example:
+
+```text
+Projects
+
+learning (5)
+personal (2)
+work (14)
+```
+
+Show tasks belonging to a project:
+
+```bash
+td -p work
+```
+
+---
 
 ### Complete a Task
 
 ```bash
 td done 3
+
+# alias
+td c 3
 ```
+
+---
 
 ### Undo a Task
 
 ```bash
 td undo 3
+
+# alias
+td u 3
 ```
+
+---
 
 ### Modify a Task
 
@@ -65,80 +116,121 @@ td undo 3
 td modify 3 "Updated task"
 ```
 
+---
+
 ### Delete a Task
 
 ```bash
 td delete 3
+
+# aliases
+td rm 3
+td del 3
 ```
+
+---
 
 ### Search
 
+Searches task titles **and project names**.
+
 ```bash
-td search journal
+td search kubernetes
+
+# alias
+td s kubernetes
 ```
+
+---
 
 ### Due Dates
 
 ```bash
 td today
+
 td overdue
 ```
+
+Aliases:
+
+```bash
+td t
+td o
+```
+
+---
 
 ### Statistics
 
 ```bash
 td stats
+
+# alias
+td stat
 ```
+
+---
 
 ### Clear Completed Tasks
 
 ```bash
 td clear-completed
+
+# alias
+td cc
+```
+
+---
+
+### Version
+
+```bash
+td version
+
+# alias
+td v
 ```
 
 ---
 
 ## Recurring Tasks
 
-Supported recurrence schedules:
+Supported schedules:
 
-```bash
---every daily
---every weekly
---every monthly
---every yearly
+```text
+daily
+weekly
+monthly
+yearly
 ```
 
 Example:
 
 ```bash
-td add "Daily backup" --due 2026-08-01 --every daily
+td add "Daily backup" \
+    --due 2026-08-01 \
+    --every daily
 ```
 
 Completing a recurring task automatically creates the next occurrence.
 
 ---
 
-## Aliases
+## Priorities
 
 ```text
-td ls          list tasks
-td c <id>      complete task
-td u <id>      undo task
-td rm <id>     delete task
-td t           today
-td o           overdue
-td s <text>    search
-td stat        statistics
-td cc          clear completed
-td v           version
+Low
+Medium
+High
 ```
+
+Default priority is **Medium**.
 
 ---
 
 ## Task Ordering
 
-Tasks are automatically sorted in the following order:
+Tasks are automatically sorted by:
 
 1. Overdue
 2. Today
@@ -147,11 +239,11 @@ Tasks are automatically sorted in the following order:
 5. No due date
 6. Completed
 
-Within the same group:
+Within each group:
 
-1. Higher priority first
-2. Earlier due date first
-3. Lower ID first
+1. Higher priority
+2. Earlier due date
+3. Lower task ID
 
 ---
 
