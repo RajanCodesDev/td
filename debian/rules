@@ -5,3 +5,6 @@ export CGO_ENABLED := 1
 
 %:
 	dh $@ --buildsystem=golang
+	
+override_dh_dwz:
+	true

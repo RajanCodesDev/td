@@ -5,7 +5,9 @@ Maintainer: Shivendra Rajan <shivendrarajan10@gmail.com>
 Build-Depends:
  debhelper-compat (= 13),
  dh-golang,
- golang-any
+ golang-any,
+ golang-github-mattn-go-sqlite3-dev,
+ golang-github-jedib0t-go-pretty-dev
 Standards-Version: 4.6.2
 Homepage: https://github.com/RajanCodesDev/td
 Rules-Requires-Root: no
