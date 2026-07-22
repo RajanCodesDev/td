@@ -1,6 +1,6 @@
 module github.com/RajanCodesDev/td
 
-go 1.25.1
+go 1.22
 
 require (
 	github.com/jedib0t/go-pretty/v6 v6.8.2

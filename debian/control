@@ -12,7 +12,9 @@ Rules-Requires-Root: no
 
 Package: td
 Architecture: any
-Depends: ${misc:Depends}
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
 Description: Fast terminal task manager
  td is a lightweight terminal task manager written in Go and backed by SQLite.
  It supports priorities, projects, recurring tasks, due dates, search,
