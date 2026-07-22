@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-
 type Stats struct {
 	Total     int
 	Pending   int
@@ -34,7 +33,6 @@ type ProjectCount struct {
 	Name  string
 	Count int
 }
-
 
 func ListProjects(db *sql.DB) ([]ProjectCount, error) {
 	rows, err := db.Query(`
@@ -268,7 +266,6 @@ func AddTask(
 	if text == "" {
 		return errors.New("task cannot be empty")
 	}
-
 
 	if due != nil {
 		dueString = due.Format(time.RFC3339)

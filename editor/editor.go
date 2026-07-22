@@ -11,7 +11,6 @@ import (
 	"github.com/RajanCodesDev/td/config"
 )
 
-
 func GetEditor() string {
 	cfg, _ := config.Load()
 
@@ -30,7 +29,6 @@ func GetEditor() string {
 	return ""
 }
 
-
 func SetEditor(name string) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -41,7 +39,6 @@ func SetEditor(name string) error {
 
 	return config.Save(cfg)
 }
-
 
 func DetectEditors() []string {
 	candidates := []string{
@@ -73,8 +70,11 @@ func ChooseEditor() (string, error) {
 		return "", fmt.Errorf("no supported editor found")
 	}
 
-	fmt.Println("No editor configured.\n")
-	fmt.Println("Available editors:\n")
+	fmt.Println("No editor configured.")
+	fmt.Println()
+
+	fmt.Println("Available editors:")
+	fmt.Println()
 
 	for i, editor := range editors {
 		fmt.Printf("%d. %s\n", i+1, editor)

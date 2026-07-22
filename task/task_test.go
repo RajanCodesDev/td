@@ -35,7 +35,6 @@ func testDB(t *testing.T) *sql.DB {
 	return db
 }
 
-
 func TestAddAndGet(t *testing.T) {
 	db := testDB(t)
 	defer db.Close()
@@ -57,7 +56,6 @@ func TestAddAndGet(t *testing.T) {
 		)
 	}
 }
-
 
 func TestDelete(t *testing.T) {
 	db := testDB(t)

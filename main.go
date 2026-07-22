@@ -3,25 +3,26 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/RajanCodesDev/td/db"
-	"github.com/RajanCodesDev/td/editor"
-	"github.com/RajanCodesDev/td/task"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/RajanCodesDev/td/db"
+	"github.com/RajanCodesDev/td/editor"
+	"github.com/RajanCodesDev/td/task"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
 const (
-	Version = "v1.4.0"
-	Reset  = "\033[0m"
-	Green  = "\033[32m"
-	Red    = "\033[31m"
-	Yellow = "\033[33m"
-	Cyan   = "\033[36m"
+	Version = "v1.5.4"
+	Reset   = "\033[0m"
+	Green   = "\033[32m"
+	Red     = "\033[31m"
+	Yellow  = "\033[33m"
+	Cyan    = "\033[36m"
 )
 
 func dbPath() (string, error) {
@@ -121,115 +122,115 @@ func renderTable(title string, tasks []task.Task) {
 		})
 	}
 
-for _, t := range tasks {
-	status := "○"
-	if t.Completed {
-		status = "✓"
-	}
+	for _, t := range tasks {
+		status := "○"
+		if t.Completed {
+			status = "✓"
+		}
 
-	priority := "M"
+		priority := "M"
 
-	switch t.Priority {
-	case 1:
-		priority = "L"
-	case 2:
-		priority = "M"
-	case 3:
-		priority = "H"
-	}
+		switch t.Priority {
+		case 1:
+			priority = "L"
+		case 2:
+			priority = "M"
+		case 3:
+			priority = "H"
+		}
 
-	project := "-"
-	if t.Project != "" {
-		project = t.Project
-	}
+		project := "-"
+		if t.Project != "" {
+			project = t.Project
+		}
 
-	if isCompleted {
-		completed := "-"
+		if isCompleted {
+			completed := "-"
 
-		if t.CompletedAt != nil {
-			completed =
-				t.CompletedAt.Format(
-					"2006-01-02",
+			if t.CompletedAt != nil {
+				completed =
+					t.CompletedAt.Format(
+						"2006-01-02",
+					)
+			}
+
+			tw.AppendRow(table.Row{
+				t.ID,
+				status,
+				priority,
+				completed,
+				project,
+				t.Task,
+			})
+
+			continue
+		}
+
+		due := "-"
+
+		if t.DueDate != nil {
+			now := time.Now()
+			tomorrow := now.AddDate(0, 0, 1)
+
+			switch {
+			case sameDay(*t.DueDate, now):
+				due = "TODAY"
+
+			case sameDay(*t.DueDate, tomorrow):
+				due = "TOMORROW"
+
+			case t.DueDate.Before(now):
+				days :=
+					int(
+						startOfDay(now).
+							Sub(startOfDay(*t.DueDate)).
+							Hours() / 24,
+					)
+
+				due = fmt.Sprintf(
+					"OVERDUE (%dd)",
+					days,
 				)
+
+			default:
+				days :=
+					int(
+						startOfDay(*t.DueDate).
+							Sub(startOfDay(now)).
+							Hours() / 24,
+					)
+
+				if days <= 90 {
+					due = fmt.Sprintf(
+						"+%dd",
+						days,
+					)
+				} else {
+					due = t.DueDate.Format(
+						"2006-01-02",
+					)
+				}
+			}
+		}
+
+		every := "-"
+
+		if t.Recurring != "" {
+			every =
+				"↻ " +
+					t.Recurring
 		}
 
 		tw.AppendRow(table.Row{
 			t.ID,
 			status,
 			priority,
-			completed,
+			due,
+			every,
 			project,
 			t.Task,
 		})
-
-		continue
 	}
-
-	due := "-"
-
-	if t.DueDate != nil {
-		now := time.Now()
-		tomorrow := now.AddDate(0, 0, 1)
-
-		switch {
-		case sameDay(*t.DueDate, now):
-			due = "TODAY"
-
-		case sameDay(*t.DueDate, tomorrow):
-			due = "TOMORROW"
-
-		case t.DueDate.Before(now):
-			days :=
-				int(
-					startOfDay(now).
-						Sub(startOfDay(*t.DueDate)).
-						Hours() / 24,
-				)	
-
-			due = fmt.Sprintf(
-				"OVERDUE (%dd)",
-				days,
-			)
-
-		default:
-			days :=
-				int(
-					startOfDay(*t.DueDate).
-						Sub(startOfDay(now)).
-						Hours() / 24,
-				)
-
-			if days <= 90 {
-				due = fmt.Sprintf(
-					"+%dd",
-					days,
-				)
-			} else {
-				due = t.DueDate.Format(
-					"2006-01-02",
-				)
-			}
-		}
-	}
-
-	every := "-"
-
-	if t.Recurring != "" {
-		every =
-			"↻ " +
-				t.Recurring
-	}
-
-	tw.AppendRow(table.Row{
-		t.ID,
-		status,
-		priority,
-		due,
-		every,
-		project,
-		t.Task,
-	})
-}
 
 	tw.SetStyle(table.StyleRounded)
 
@@ -242,7 +243,6 @@ for _, t := range tasks {
 
 	tw.Render()
 }
-
 
 func printTasks(tasks []task.Task) {
 	var pending []task.Task
@@ -259,7 +259,6 @@ func printTasks(tasks []task.Task) {
 	renderTable("Pending", pending)
 	renderTable("Completed", completed)
 }
-
 
 func main() {
 	if len(os.Args) < 2 {
@@ -287,7 +286,8 @@ func main() {
 				panic(err)
 			}
 
-			fmt.Println("Projects\n")
+			fmt.Println("Projects")
+			fmt.Println()
 
 			for _, p := range projects {
 				fmt.Printf("%-20s (%d)\n", p.Name, p.Count)
@@ -305,39 +305,38 @@ func main() {
 		return
 	}
 
-
 	command := os.Args[1]
 	switch command {
-		case "ls":
-			command = "list"
+	case "ls":
+		command = "list"
 
-		case "rm", "del":
-			command = "delete"
+	case "rm", "del":
+		command = "delete"
 
-		case "c":
-			command = "done"
+	case "c":
+		command = "done"
 
-		case "u":
-			command = "undo"
+	case "u":
+		command = "undo"
 
-		case "t":
-			command = "today"
+	case "t":
+		command = "today"
 
-		case "o":
-			command = "overdue"
+	case "o":
+		command = "overdue"
 
-		case "s":
-			command = "search"
+	case "s":
+		command = "search"
 
-		case "stat":
-			command = "stats"
+	case "stat":
+		command = "stats"
 
-		case "cc":
-			command = "clear-completed"
+	case "cc":
+		command = "clear-completed"
 
-		case "v":
-			command = "version"
-		}
+	case "v":
+		command = "version"
+	}
 
 	switch command {
 
@@ -373,8 +372,6 @@ func main() {
 			)
 		}
 
-
-
 	case "add":
 
 		priority := 2
@@ -395,10 +392,6 @@ func main() {
 				break
 			}
 		}
-
-
-
-
 
 		for i := 2; i < len(os.Args); i++ {
 			if os.Args[i] == "--every" {
@@ -436,7 +429,6 @@ func main() {
 				break
 			}
 		}
-
 
 		for i := 2; i < len(os.Args); i++ {
 			if os.Args[i] == "--priority" {
@@ -524,42 +516,41 @@ func main() {
 			)
 			return
 		}
-		
+
 		if editorMode {
 
-		tasks, err := editor.Open()
-		if err != nil {
-			panic(err)
-		}
-
-		added := 0
-
-		for _, t := range tasks {
-
-			if strings.TrimSpace(t) == "" {
-				continue
-			}
-
-			err := task.AddTask(
-				database,
-				t,
-				priority,
-				project,
-				due,
-				recurring,
-			)
-
+			tasks, err := editor.Open()
 			if err != nil {
 				panic(err)
 			}
 
-			added++
+			added := 0
+
+			for _, t := range tasks {
+
+				if strings.TrimSpace(t) == "" {
+					continue
+				}
+
+				err := task.AddTask(
+					database,
+					t,
+					priority,
+					project,
+					due,
+					recurring,
+				)
+
+				if err != nil {
+					panic(err)
+				}
+
+				added++
+			}
+
+			fmt.Printf("Added %d tasks.\n", added)
+			return
 		}
-
-		fmt.Printf("Added %d tasks.\n", added)
-		return
-	}
-
 
 		text := strings.TrimSpace(strings.Join(os.Args[2:], " "))
 
@@ -589,7 +580,6 @@ func main() {
 		}
 
 		printTasks(tasks)
-	
 
 	case "today":
 		tasks, err :=
@@ -608,7 +598,7 @@ func main() {
 		}
 
 		printTasks(tasks)
-	
+
 	case "delete":
 		if len(os.Args) != 3 {
 			fmt.Println("usage: td delete <id>")
@@ -739,9 +729,9 @@ func main() {
 
 	case "path":
 		fmt.Println(path)
-	
+
 	case "version":
-		fmt.Println(Version)		
+		fmt.Println(Version)
 
 	default:
 		usage()
