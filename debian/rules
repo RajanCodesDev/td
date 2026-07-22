@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
-export CGO_ENABLED=1
+export DH_GOPKG := github.com/RajanCodesDev/td
+export CGO_ENABLED := 1
 
 %:
 	dh $@ --buildsystem=golang

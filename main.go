@@ -3,9 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"gocli/db"
-	"gocli/editor"
-	"gocli/task"
+	"github.com/RajanCodesDev/td/db"
+	"github.com/RajanCodesDev/td/editor"
+	"github.com/RajanCodesDev/td/task"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -74,6 +74,7 @@ td undo <id>
 td modify <id> "new task"
 td delete <id>
 td path
+td cc 
 `)
 }
 
@@ -376,42 +377,27 @@ func main() {
 
 	case "add":
 
-		if len(os.Args) == 2 {
-			tasks, err := editor.Open()
-			if err != nil {
-				panic(err)
-			}
-
-			for _, t := range tasks {
-				err := task.Add(database, t)
-				if err != nil {
-					panic(err)
-				}
-			}
-
-			fmt.Printf("Added %d tasks.\n", len(tasks))
-			return
-		}
-
-		if os.Args[2] == "-e" {
-			fmt.Print("Editor: ")
-
-			var name string
-			fmt.Scanln(&name)
-
-			err := editor.SetEditor(name)
-			if err != nil {
-				panic(err)
-			}
-
-			fmt.Println("Editor updated.")
-			return
-		}
-
 		priority := 2
 		project := ""
 		var due *time.Time
 		recurring := ""
+		editorMode := false
+
+		for i := 2; i < len(os.Args); i++ {
+			if os.Args[i] == "-e" {
+				editorMode = true
+
+				os.Args = append(
+					os.Args[:i],
+					os.Args[i+1:]...,
+				)
+
+				break
+			}
+		}
+
+
+
 
 
 		for i := 2; i < len(os.Args); i++ {
@@ -539,7 +525,48 @@ func main() {
 			return
 		}
 		
-		text := strings.Join(os.Args[2:], " ")
+		if editorMode {
+
+		tasks, err := editor.Open()
+		if err != nil {
+			panic(err)
+		}
+
+		added := 0
+
+		for _, t := range tasks {
+
+			if strings.TrimSpace(t) == "" {
+				continue
+			}
+
+			err := task.AddTask(
+				database,
+				t,
+				priority,
+				project,
+				due,
+				recurring,
+			)
+
+			if err != nil {
+				panic(err)
+			}
+
+			added++
+		}
+
+		fmt.Printf("Added %d tasks.\n", added)
+		return
+	}
+
+
+		text := strings.TrimSpace(strings.Join(os.Args[2:], " "))
+
+		if text == "" {
+			fmt.Println("task cannot be empty")
+			return
+		}
 
 		err := task.AddTask(
 			database,

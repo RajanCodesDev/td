@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"gocli/config"
+	"github.com/RajanCodesDev/td/config"
 )
 
 func GetEditor() string {

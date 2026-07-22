@@ -2,9 +2,12 @@ package task
 
 import (
 	"database/sql"
+	"errors"
 	"sort"
+	"strings"
 	"time"
 )
+
 
 type Stats struct {
 	Total     int
@@ -259,6 +262,14 @@ func AddTask(
 ) error {
 	var dueString any
 	var nextDue any
+
+	text = strings.TrimSpace(text)
+
+	if text == "" {
+		return errors.New("task cannot be empty")
+	}
+
+
 	if due != nil {
 		dueString = due.Format(time.RFC3339)
 	}
