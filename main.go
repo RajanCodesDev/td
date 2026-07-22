@@ -79,6 +79,15 @@ td cc
 `)
 }
 
+func fatal(err error) {
+	if err == nil {
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "✗ %v\n", err)
+	os.Exit(1)
+}
+
 func sameDay(a, b time.Time) bool {
 	y1, m1, d1 := a.Date()
 	y2, m2, d2 := b.Date()
@@ -268,12 +277,12 @@ func main() {
 
 	path, err := dbPath()
 	if err != nil {
-		panic(err)
+		fatal(err)
 	}
 
 	database, err := db.Init(path)
 	if err != nil {
-		panic(err)
+		fatal(err)
 	}
 	defer database.Close()
 
@@ -283,7 +292,7 @@ func main() {
 
 			projects, err := task.ListProjects(database)
 			if err != nil {
-				panic(err)
+				fatal(err)
 			}
 
 			fmt.Println("Projects")
@@ -298,7 +307,7 @@ func main() {
 
 		tasks, err := task.ProjectTasks(database, os.Args[2])
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		printTasks(tasks)
@@ -343,7 +352,7 @@ func main() {
 	case "clear-completed":
 		err := task.ClearCompleted(database)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		fmt.Println("Completed tasks removed.")
@@ -351,7 +360,7 @@ func main() {
 	case "stats":
 		s, err := task.GetStats(database)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		fmt.Printf("Total      : %d\n", s.Total)
@@ -521,7 +530,7 @@ func main() {
 
 			tasks, err := editor.Open()
 			if err != nil {
-				panic(err)
+				fatal(err)
 			}
 
 			added := 0
@@ -542,7 +551,7 @@ func main() {
 				)
 
 				if err != nil {
-					panic(err)
+					fatal(err)
 				}
 
 				added++
@@ -568,7 +577,7 @@ func main() {
 			recurring,
 		)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		fmt.Println("Task added.")
@@ -576,7 +585,7 @@ func main() {
 	case "list":
 		tasks, err := task.List(database)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		printTasks(tasks)
@@ -585,7 +594,7 @@ func main() {
 		tasks, err :=
 			task.Today(database)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		printTasks(tasks)
@@ -594,7 +603,7 @@ func main() {
 		tasks, err :=
 			task.Overdue(database)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		printTasks(tasks)
@@ -617,7 +626,7 @@ func main() {
 				fmt.Println("task not found")
 				return
 			}
-			panic(err)
+			fatal(err)
 		}
 
 		fmt.Println("Task deleted.")
@@ -642,7 +651,7 @@ func main() {
 				fmt.Println("task not found")
 				return
 			}
-			panic(err)
+			fatal(err)
 		}
 
 		fmt.Println("Task updated.")
@@ -664,7 +673,7 @@ func main() {
 				query,
 			)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		printTasks(tasks)
@@ -687,7 +696,7 @@ func main() {
 				fmt.Println("task not found")
 				return
 			}
-			panic(err)
+			fatal(err)
 		}
 
 		fmt.Println("Task completed.")
@@ -710,7 +719,7 @@ func main() {
 				fmt.Println("task not found")
 				return
 			}
-			panic(err)
+			fatal(err)
 		}
 
 		if t.Recurring != "" {
@@ -722,7 +731,7 @@ func main() {
 
 		err = task.Undo(database, id)
 		if err != nil {
-			panic(err)
+			fatal(err)
 		}
 
 		fmt.Println("Task marked pending.")
