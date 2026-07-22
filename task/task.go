@@ -334,6 +334,12 @@ func Modify(
 	id int,
 	text string,
 ) error {
+
+	text = strings.TrimSpace(text)
+
+	if text == "" {
+		return errors.New("task cannot be empty")
+	}
 	res, err := db.Exec(
 		"UPDATE tasks SET task=? WHERE id=?",
 		text,
