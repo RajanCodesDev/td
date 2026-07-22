@@ -15,23 +15,99 @@ A fast, lightweight terminal task manager written in Go and backed by SQLite.
 - Bulk task creation via your preferred editor
 - Pretty terminal tables
 - Command aliases
+- Zero configuration
+- Single binary
 
 ---
 
-## Installation
+
+# Installation
+
+## Ubuntu (PPA)
+
+Add the official PPA:
 
 ```bash
-git clone https://github.com/<your-username>/td.git
-cd td
-go build -o td
-sudo mv td /usr/local/bin/
+sudo add-apt-repository ppa:rajancodesdev/td
+sudo apt update
+sudo apt install td
+```
+
+Verify the installation:
+
+```bash
+td version
 ```
 
 ---
 
-## Usage
+## Build From Source
 
-### Add Tasks
+Requirements:
+
+- Go 1.25+
+- GCC (required by SQLite)
+
+```bash
+git clone https://github.com/RajanCodesDev/td.git
+cd td
+
+go build -o td
+
+sudo mv td /usr/local/bin/
+```
+
+Verify:
+
+```bash
+td version
+```
+
+---
+
+
+Requirements:
+
+- Go 1.25+
+- GCC (required by SQLite)
+
+```bash
+git clone https://github.com/RajanCodesDev/td.git
+
+cd td
+
+go build -o td
+
+sudo mv td /usr/local/bin/
+```
+
+Verify:
+
+```bash
+td version
+```
+
+---
+
+## Database
+
+The database is created automatically on first run.
+
+```
+~/.local/share/td/tasks.db
+```
+
+Configuration is stored in:
+
+```
+~/.config/td/config.json
+```
+
+---
+
+# Usage
+
+## Add Tasks
 
 ```bash
 td add "Buy groceries"
@@ -46,12 +122,21 @@ td add "Renew domain" --due 2026-08-01
 
 td add "Daily journal" --due 2026-08-01 --every daily
 
-td add "Deploy cluster" -p work --priority high --due 2026-08-01
+td add "Deploy cluster" \
+    -p work \
+    --priority high \
+    --due 2026-08-01
+```
+
+Open your preferred editor for bulk task creation:
+
+```bash
+td add -e
 ```
 
 ---
 
-### List Tasks
+## List Tasks
 
 ```bash
 td list
@@ -62,7 +147,7 @@ td ls
 
 ---
 
-### Projects
+## Projects
 
 List all projects:
 
@@ -88,7 +173,7 @@ td -p work
 
 ---
 
-### Complete a Task
+## Complete a Task
 
 ```bash
 td done 3
@@ -99,7 +184,7 @@ td c 3
 
 ---
 
-### Undo a Task
+## Undo a Task
 
 ```bash
 td undo 3
@@ -110,7 +195,7 @@ td u 3
 
 ---
 
-### Modify a Task
+## Modify a Task
 
 ```bash
 td modify 3 "Updated task"
@@ -118,7 +203,7 @@ td modify 3 "Updated task"
 
 ---
 
-### Delete a Task
+## Delete a Task
 
 ```bash
 td delete 3
@@ -130,9 +215,9 @@ td del 3
 
 ---
 
-### Search
+## Search
 
-Searches task titles **and project names**.
+Searches both task titles and project names.
 
 ```bash
 td search kubernetes
@@ -143,7 +228,7 @@ td s kubernetes
 
 ---
 
-### Due Dates
+## Due Dates
 
 ```bash
 td today
@@ -160,7 +245,7 @@ td o
 
 ---
 
-### Statistics
+## Statistics
 
 ```bash
 td stats
@@ -171,7 +256,7 @@ td stat
 
 ---
 
-### Clear Completed Tasks
+## Clear Completed Tasks
 
 ```bash
 td clear-completed
@@ -182,7 +267,7 @@ td cc
 
 ---
 
-### Version
+## Version
 
 ```bash
 td version
@@ -193,11 +278,11 @@ td v
 
 ---
 
-## Recurring Tasks
+# Recurring Tasks
 
 Supported schedules:
 
-```text
+```
 daily
 weekly
 monthly
@@ -216,19 +301,19 @@ Completing a recurring task automatically creates the next occurrence.
 
 ---
 
-## Priorities
+# Priorities
 
-```text
-Low
-Medium
+```
 High
+Medium
+Low
 ```
 
 Default priority is **Medium**.
 
 ---
 
-## Task Ordering
+# Task Ordering
 
 Tasks are automatically sorted by:
 
@@ -247,14 +332,22 @@ Within each group:
 
 ---
 
-## Database Location
+# Data Locations
 
-```text
+Database
+
+```
 ~/.local/share/td/tasks.db
+```
+
+Configuration
+
+```
+~/.config/td/config.json
 ```
 
 ---
 
-## License
+# License
 
 MIT
