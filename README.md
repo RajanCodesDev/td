@@ -28,7 +28,7 @@ A fast, lightweight terminal task manager written in Go and backed by SQLite.
 Add the official PPA:
 
 ```bash
-sudo add-apt-repository ppa:rajancodesdev/td
+sudo add-apt-repository ppa:rajancodesdev/ppa
 sudo apt update
 sudo apt install td
 ```
