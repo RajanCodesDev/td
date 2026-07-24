@@ -34,6 +34,33 @@ type ProjectCount struct {
 	Count int
 }
 
+
+
+
+
+func ResolveID(
+	db *sql.DB,
+	display int,
+) (int, error) {
+
+	if display < 1 {
+		return 0, sql.ErrNoRows
+	}
+
+	tasks, err := List(db)
+	if err != nil {
+		return 0, err
+	}
+
+	if display > len(tasks) {
+		return 0, sql.ErrNoRows
+	}
+
+	return tasks[display-1].ID, nil
+}
+
+
+
 func ListProjects(db *sql.DB) ([]ProjectCount, error) {
 	rows, err := db.Query(`
 		SELECT

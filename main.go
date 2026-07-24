@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+	"errors"
 	"github.com/RajanCodesDev/td/db"
 	"github.com/RajanCodesDev/td/editor"
 	"github.com/RajanCodesDev/td/task"
@@ -79,6 +79,20 @@ td cc
 `)
 }
 
+func resolveTaskNumber(
+	db *sql.DB,
+	arg string,
+) (int, error) {
+
+	display, err := strconv.Atoi(arg)
+	if err != nil {
+		return 0, errors.New("invalid task number")
+	}
+
+	return task.ResolveID(db, display)
+}
+
+
 func fatal(err error) {
 	if err == nil {
 		return
@@ -97,9 +111,10 @@ func sameDay(a, b time.Time) bool {
 		d1 == d2
 }
 
-func renderTable(title string, tasks []task.Task) {
+func renderTable( title string, tasks []task.Task, start int, ) int {
+
 	if len(tasks) == 0 {
-		return
+		return start
 	}
 
 	fmt.Printf("\n%s (%d)\n", title, len(tasks))
@@ -107,12 +122,11 @@ func renderTable(title string, tasks []task.Task) {
 	tw := table.NewWriter()
 	tw.SetOutputMirror(os.Stdout)
 
-	isCompleted :=
-		title == "Completed"
+	isCompleted := title == "Completed"
 
 	if isCompleted {
 		tw.AppendHeader(table.Row{
-			"ID",
+			"#",
 			"S",
 			"P",
 			"Completed",
@@ -121,15 +135,17 @@ func renderTable(title string, tasks []task.Task) {
 		})
 	} else {
 		tw.AppendHeader(table.Row{
-			"ID",
+			"#",
 			"S",
 			"P",
 			"Due",
 			"Every",
-			"project",
+			"Project",
 			"Task",
 		})
 	}
+
+	number := start
 
 	for _, t := range tasks {
 		status := "○"
@@ -157,14 +173,11 @@ func renderTable(title string, tasks []task.Task) {
 			completed := "-"
 
 			if t.CompletedAt != nil {
-				completed =
-					t.CompletedAt.Format(
-						"2006-01-02",
-					)
+				completed = t.CompletedAt.Format("2006-01-02")
 			}
 
 			tw.AppendRow(table.Row{
-				t.ID,
+				number,
 				status,
 				priority,
 				completed,
@@ -172,6 +185,7 @@ func renderTable(title string, tasks []task.Task) {
 				t.Task,
 			})
 
+			number++
 			continue
 		}
 
@@ -189,12 +203,11 @@ func renderTable(title string, tasks []task.Task) {
 				due = "TOMORROW"
 
 			case t.DueDate.Before(now):
-				days :=
-					int(
-						startOfDay(now).
-							Sub(startOfDay(*t.DueDate)).
-							Hours() / 24,
-					)
+				days := int(
+					startOfDay(now).
+						Sub(startOfDay(*t.DueDate)).
+						Hours() / 24,
+				)
 
 				due = fmt.Sprintf(
 					"OVERDUE (%dd)",
@@ -202,36 +215,27 @@ func renderTable(title string, tasks []task.Task) {
 				)
 
 			default:
-				days :=
-					int(
-						startOfDay(*t.DueDate).
-							Sub(startOfDay(now)).
-							Hours() / 24,
-					)
+				days := int(
+					startOfDay(*t.DueDate).
+						Sub(startOfDay(now)).
+						Hours() / 24,
+				)
 
 				if days <= 90 {
-					due = fmt.Sprintf(
-						"+%dd",
-						days,
-					)
+					due = fmt.Sprintf("+%dd", days)
 				} else {
-					due = t.DueDate.Format(
-						"2006-01-02",
-					)
+					due = t.DueDate.Format("2006-01-02")
 				}
 			}
 		}
 
 		every := "-"
-
 		if t.Recurring != "" {
-			every =
-				"↻ " +
-					t.Recurring
+			every = "↻ " + t.Recurring
 		}
 
 		tw.AppendRow(table.Row{
-			t.ID,
+			number,
 			status,
 			priority,
 			due,
@@ -239,18 +243,20 @@ func renderTable(title string, tasks []task.Task) {
 			project,
 			t.Task,
 		})
+
+		number++
 	}
 
 	tw.SetStyle(table.StyleRounded)
 
-	tw.Style().Format.Header =
-		text.FormatDefault
-
+	tw.Style().Format.Header = text.FormatDefault
 	tw.Style().Options.DrawBorder = true
 	tw.Style().Options.SeparateColumns = true
 	tw.Style().Options.SeparateHeader = true
 
 	tw.Render()
+
+	return number
 }
 
 func printTasks(tasks []task.Task) {
@@ -265,8 +271,9 @@ func printTasks(tasks []task.Task) {
 		}
 	}
 
-	renderTable("Pending", pending)
-	renderTable("Completed", completed)
+	n := 1
+	n = renderTable("Pending", pending, n)
+	renderTable("Completed", completed, n)
 }
 
 func main() {
@@ -614,7 +621,7 @@ func main() {
 			return
 		}
 
-		id, err := strconv.Atoi(os.Args[2])
+		id, err := resolveTaskNumber(database, os.Args[2])
 		if err != nil {
 			fmt.Println("invalid id")
 			return
@@ -637,7 +644,7 @@ func main() {
 			return
 		}
 
-		id, err := strconv.Atoi(os.Args[2])
+		id, err := resolveTaskNumber(database, os.Args[2])
 		if err != nil {
 			fmt.Println("invalid id")
 			return
@@ -684,7 +691,7 @@ func main() {
 			return
 		}
 
-		id, err := strconv.Atoi(os.Args[2])
+		id, err := resolveTaskNumber(database, os.Args[2])
 		if err != nil {
 			fmt.Println("invalid id")
 			return
@@ -707,7 +714,7 @@ func main() {
 			return
 		}
 
-		id, err := strconv.Atoi(os.Args[2])
+		id, err := resolveTaskNumber(database, os.Args[2])
 		if err != nil {
 			fmt.Println("invalid id")
 			return
